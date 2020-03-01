@@ -13,7 +13,7 @@ class Chatbot:
 
     def __init__(self, creative=False):
         # The chatbot's default name is `moviebot`. Give your chatbot a new name.
-        self.name = 'R.O.B.' # responsive, omniscient bot
+        self.name = 'moviebot'
 
         self.creative = creative
 
@@ -43,7 +43,7 @@ class Chatbot:
         # TODO: Write a short greeting message                                      #
         #############################################################################
 
-        greeting_message = "I would like to know more about yourself or what you like!"
+        greeting_message = "How can I help you?"
 
         #############################################################################
         #                             END OF YOUR CODE                              #
@@ -56,7 +56,7 @@ class Chatbot:
         # TODO: Write a short farewell message                                      #
         #############################################################################
 
-        goodbye_message = "Thanks for helping me learn! Goodbye"
+        goodbye_message = "Have a nice day!"
 
         #############################################################################
         #                             END OF YOUR CODE                              #
