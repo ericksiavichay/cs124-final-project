@@ -271,6 +271,23 @@ class Chatbot:
                 return [art, remaining.strip()]
         return broke
 
+    def rearrange_title(self, title):
+      year_index = self.get_year_index(title)
+      yearless_title, year = title[:year_index], title[year_index:] # year will be empty string if it doesn't contain year
+      yearless_title = yearless_title.strip()
+      year = " " + year
+      article, remaining = self.break_by_article(yearless_title) 
+        
+      if (article != ""):
+        rearranged = remaining + ", " + article + year
+        yearless_rearranged = remaining + ", " + article
+      else: 
+        rearranged = remaining + year
+        yearless_rearranged = remaining
+      rearranged = rearranged.strip()
+
+      return rearranged, yearless_rearranged
+
     def find_movies_by_title(self, title):
         """ Given a movie title, return a list of indices of matching movies.
         - If no movies are found that match the given title, return an empty list.
@@ -285,19 +302,7 @@ class Chatbot:
         :returns: a list of indices of matching movies
         """
         matching_movie_indices = []
-        year_index = self.get_year_index(title)
-        yearless_title, year = title[:year_index], title[year_index:] # year will be empty string if it doesn't contain year
-        yearless_title = yearless_title.strip()
-        year = " " + year
-        article, remaining = self.break_by_article(yearless_title) 
-        
-        if (article != ""):
-            rearranged = remaining + ", " + article + year
-            yearless_rearranged = remaining + ", " + article
-        else: 
-            rearranged = remaining + year
-            yearless_rearranged = remaining
-        rearranged = rearranged.strip()
+        rearranged, yearless_rearranged = self.rearrange_title(title)
 
         # given this rearranged format, search for this in the dataset
         # a title with year should return list of length one since 
@@ -560,6 +565,48 @@ class Chatbot:
         print("Success: ", movies_sentiment)
         return movies_sentiment
 
+    def calculate_minimum_edit_distance(self, s, t, len_s, len_t):
+      """ 
+        Finds minimum edit distance between two strings: s and t.
+
+        :param s: starting string when calculating distance
+        :param t: string that s is converted into using edits (insert, replace, or delete)
+        :param len_s: initial length of string s
+        :param len_t: initial length of string t
+        :returns: an integer representing the minimum edit distance between s and t
+      """
+      
+      # Create table to store results of subproblems 
+      dp = [[0 for x in range(len_t + 1)] for x in range(len_s + 1)] 
+    
+      # Fill d[][] in bottom up manner 
+      for i in range(len_s + 1): 
+          for j in range(len_t + 1): 
+    
+              # If s is empty, the only option is
+              #   to insert all characters of t
+              if i == 0: 
+                  dp[i][j] = j
+    
+              # If t is empty, the only option i
+              #   to remove all characters of s
+              elif j == 0: 
+                  dp[i][j] = i
+    
+              # If last characters are same, ignore last 
+              #   char and recur for remaining string 
+              elif s[i-1] == t[j-1]: 
+                  dp[i][j] = dp[i-1][j-1] 
+    
+              # If last characters are different, consider all 
+              #   possibilities and find minimum 
+              else: 
+                  dp[i][j] = 1 + min(dp[i][j-1], # Insert 
+                                    dp[i-1][j], # Remove 
+                                    dp[i-1][j-1]) # Replace 
+    
+      return dp[len_s][len_t]
+
     def find_movies_closest_to_title(self, title, max_distance=3):
         """Creative Feature: Given a potentially misspelled movie title,
         return a list of the movies in the dataset whose titles have the least edit distance
@@ -579,7 +626,45 @@ class Chatbot:
         :returns: a list of movie indices with titles closest to the given title and within edit distance max_distance
         """
 
-        pass
+        matching_movie_indices = []
+        min_distance_seen = 1000
+        rearranged, yearless_rearranged = self.rearrange_title(title)
+
+        # given this rearranged format, search for this in the dataset
+        # a title with year should return list of length one since 
+        # it would not be a substring of anything else but the exact match
+        similar_title_pattern = "(:?.+)?" + yearless_rearranged + r"\b(:?.+)?"# matches rearranged to an exact substring in movie_title
+        with open(self.movie_db) as movie_file:
+            lines = movie_file.readlines()
+            for line in lines:
+                movie_index, movie_title, _ = line.split("%") # splitting should return 3 strings
+                # Check if there's an exact match (i.e. not mispelled)
+                if movie_title == rearranged: 
+                  min_distance_seen = 0
+                  return [int(movie_index)]
+                if re.search(similar_title_pattern, movie_title):
+                  min_distance_seen = 0
+                  matching_movie_indices.append(int(movie_index))
+                else:
+                  # Get movie_title without year
+                  year_index = self.get_year_index(movie_title)
+                  yearless_movie_title = movie_title[:year_index]
+                  yearless_movie_title = yearless_movie_title.strip()
+
+                  # Check if there's a match within max_distance
+                  edit_distance = min(self.calculate_minimum_edit_distance(title, movie_title, len(title), len(movie_title)),
+                                      self.calculate_minimum_edit_distance(rearranged, movie_title, len(title), len(movie_title)),
+                                      self.calculate_minimum_edit_distance(similar_title_pattern, movie_title, len(yearless_rearranged), len(movie_title)),
+                                      self.calculate_minimum_edit_distance(title, yearless_movie_title, len(title), len(yearless_movie_title)),
+                                      self.calculate_minimum_edit_distance(rearranged, yearless_movie_title, len(title), len(yearless_movie_title)),
+                                      self.calculate_minimum_edit_distance(similar_title_pattern, yearless_movie_title, len(yearless_rearranged), len(yearless_movie_title)))
+                  if edit_distance <= max_distance:
+                    if edit_distance < min_distance_seen:
+                      min_distance_seen = edit_distance
+                      matching_movie_indices.clear()
+                      matching_movie_indices.append(int(movie_index))
+        
+        return matching_movie_indices
 
     def disambiguate(self, clarification, candidates):
         """Creative Feature: Given a list of movies that the user could be talking about
