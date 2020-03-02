@@ -261,6 +261,9 @@ class Chatbot:
         :returns: list of movie titles that are potentially in the text
         """
         movie_titles = self.get_titles_between_quotes(preprocessed_input)
+        # TODO: debugging, remove after confident it's working
+        for movie in movie_titles:
+            print("movie {} has indices {}".format(movie, self.find_movies_by_title(movie)))
         return movie_titles
 
     def get_year_index(self, title):
@@ -320,9 +323,9 @@ class Chatbot:
             lines = movie_file.readlines()
             for line in lines:
                 movie_index, movie_title, _ = line.split("%") # splitting should return 3 strings
-                if movie_title == rearranged: return [movie_index]
+                if movie_title == rearranged: return [int(movie_index)]
                 if (rearranged + " (") in movie_title:
-                    matching_movie_indices.append(movie_index)
+                    matching_movie_indices.append(int(movie_index))
         return matching_movie_indices
 
 
