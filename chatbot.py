@@ -396,11 +396,12 @@ class Chatbot:
             
         # Get top k recommendations
         sorted_ranks = []
-        for rank in sorted(all_rated):
+        for rank in sorted(all_rated, reverse=True):
           if rank != -2:
             sorted_ranks.append(rank)
         for i in range(min(k, len(sorted_ranks))):
           movie_index = all_rated.index(sorted_ranks[i])
+          all_rated[movie_index] = -2
           recommendations.append(movie_index)
 
         #############################################################################
