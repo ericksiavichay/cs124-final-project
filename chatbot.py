@@ -14,7 +14,7 @@ class Chatbot:
 
     def __init__(self, creative=False):
         # The chatbot's default name is `moviebot`. Give your chatbot a new name.
-        self.name = 'R.O.B.' # responsive, omniscient bot
+        self.name = 'moviebot'
 
         self.creative = creative
 
@@ -26,11 +26,9 @@ class Chatbot:
         self.titles, ratings = movielens.ratings()
         self.sentiment = movielens.sentiment()
 
-        #############################################################################
-        # TODO: Binarize the movie ratings matrix.                                  #
-        #############################################################################
-
         # Binarize the movie ratings before storing the binarized matrix.
+        ratings = self.binarize(ratings)
+
         self.ratings = ratings
         #############################################################################
         #                             END OF YOUR CODE                              #
@@ -46,7 +44,7 @@ class Chatbot:
         # TODO: Write a short greeting message                                      #
         #############################################################################
 
-        greeting_message = "I would like to know more about yourself or what you like!"
+        greeting_message = "How can I help you?"
 
         #############################################################################
         #                             END OF YOUR CODE                              #
@@ -59,7 +57,7 @@ class Chatbot:
         # TODO: Write a short farewell message                                      #
         #############################################################################
 
-        goodbye_message = "Thanks for helping me learn! Goodbye"
+        goodbye_message = "Have a nice day!"
 
         #############################################################################
         #                             END OF YOUR CODE                              #
@@ -350,18 +348,18 @@ class Chatbot:
 
         :returns: a binarized version of the movie-rating matrix
         """
-        #############################################################################
-        # TODO: Binarize the supplied ratings matrix. Do not use the self.ratings   #
-        # matrix directly in this function.                                         #
-        #############################################################################
 
-        # The starter code returns a new matrix shaped like ratings but full of zeros.
-        binarized_ratings = np.zeros_like(ratings)
+        for i in range(len(ratings)):
+          for j in range(len(ratings[0])):
+            rating = ratings[i][j]
+            if rating == 0:
+              continue
+            if rating > threshold:
+              ratings[i][j] = 1
+            else:
+              ratings[i][j] = -1
 
-        #############################################################################
-        #                             END OF YOUR CODE                              #
-        #############################################################################
-        return binarized_ratings
+        return ratings
 
     def similarity(self, u, v):
         """Calculate the cosine similarity between two vectors.
