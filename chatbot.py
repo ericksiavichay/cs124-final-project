@@ -41,7 +41,7 @@ class Chatbot:
         self.ratings = ratings
 
         self.num_movies_rated = 0
-        self.given_ratings = []
+        self.given_ratings = np.zeros(9125, dtype=int)
 
         self.recommendations = []
         self.requested_rec = False
@@ -121,8 +121,8 @@ class Chatbot:
               self.recommendations = self.recommend(self.given_ratings, self.ratings, 10, self.creative)
             rec = self.recommendations.pop(0)
             self.given_ratings[rec] = -3 # Fill rating so that we do not re-recommend the movie to the user
-            response += """ Given everything you've told me, I think you would like "{}"! 
-              Would you like more recommendations?""".format(self.titles[rec])
+            response = """You should also check out "{}"! 
+              Would you like more recommendations?""".format(self.titles[rec][0])
             self.requested_rec = True
           else:
             self.recommendations.clear()
@@ -156,17 +156,18 @@ class Chatbot:
               elif sentiment > 0:
                 self.num_movies_rated += 1
                 self.given_ratings[movie_index] = sentiment
-                response = """I'm glad you liked "{}"!""".format(movie)
+                response = """I'm glad you liked "{}"! Tell me about another movie!""".format(movie)
               elif sentiment < 0:
                 self.num_movies_rated += 1
                 self.given_ratings[movie_index] = sentiment
-                response = """I'm sorry to hear that you didn't like "{}".""".format(movie)
+                response = """I'm sorry to hear that you didn't like "{}". 
+                  Let's hear about another movie""".format(movie)
               if self.num_movies_rated >= 5:
                 self.recommendations = self.recommend(self.given_ratings, self.ratings, 10, self.creative)
                 rec = self.recommendations.pop(0)
                 self.given_ratings[rec] = -3 # Fill rating so that we do not re-recommend the movie to the user
                 response += """ Given everything you've told me, I think you would like "{}"! 
-                  Would you like more recommendations?""".format(self.titles[rec])
+                  Would you like more recommendations?""".format(self.titles[rec][0])
                 self.requested_rec = True
 
         #############################################################################
@@ -302,9 +303,9 @@ class Chatbot:
             lines = movie_file.readlines()
             for line in lines:
                 movie_index, movie_title, _ = line.split("%") # splitting should return 3 strings
-                if movie_title == rearranged: return [movie_index]
+                if movie_title == rearranged: return [int(movie_index)]
                 if (rearranged + " (") in movie_title:
-                    matching_movie_indices.append(movie_index)
+                    matching_movie_indices.append(int(movie_index))
         return matching_movie_indices
 
     
@@ -430,9 +431,6 @@ class Chatbot:
           sentiment = -1
         else:
           sentiment = 0
-
-
-        print("calculated sentiment: ", sentiment)
         return sentiment
 
     def extract_sentiment_for_movies(self, preprocessed_input):
