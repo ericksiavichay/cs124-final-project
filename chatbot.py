@@ -148,10 +148,6 @@ class Chatbot:
               response = """I found more than one movie called "{}". Can you clarify please?""".format(movie)
             else:
               movie_index = matching_movies[0]
-
-              # NOTE: Mamadou added code here to turn movie_index into an integer always
-              movie_index = int(movie_index)
-
               sentiment = self.extract_sentiment(prepocessed_line)
               if sentiment == None: # Worst case scenario: we do not understand the input and therefore cannot get sentiment
                 response = """I'm sorry. I'm really not understanding what you are trying to say. 
@@ -251,12 +247,7 @@ class Chatbot:
         :returns: list of movie titles that are potentially in the text
         """
         movie_titles = self.get_titles_between_quotes(preprocessed_input)
-        # TODO: debugging, remove after confident it's working
-        """
-        for movie in movie_titles:
-            print("movie {} has indices {}".format(movie, self.find_movies_by_title(movie)))
         return movie_titles
-        """
 
     def get_year_index(self, title):
         """
