@@ -351,7 +351,7 @@ class Chatbot:
           if pattern.search(word) != None:
             # print("YIKES: Negation found")
             # change every word until a punctation to NOT_
-            if (i == len(stemmedInput) - 1): break; # ensure this isn't the last word in the list
+            if (i == len(stemmedInput) - 1): break # ensure this isn't the last word in the list
             j = i + 1
             while j < len(stemmedInput):
               toNegate = stemmedInput[j]
