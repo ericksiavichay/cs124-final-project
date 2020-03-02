@@ -1,0 +1,10 @@
+I liked "Titanic"
+I disliked "Titanic (1997)"
+I didn't like "Ex Machina"
+I liked "Scream"
+I disliked "Scream 2"
+I liked "Twelve Monkeys (a.k.a. 12 Monkeys) (1995)"
+I liked "Twelve Monekeys (a.k.a. 12 Monkeys)"
+I disliked "The Usual Suspects"
+I liked "The Usual Suspects (1995)"
+:quit

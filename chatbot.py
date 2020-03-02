@@ -5,6 +5,7 @@
 import movielens
 import re
 import numpy as np
+from pdb import set_trace
 import math
 
 from PorterStemmer import PorterStemmer
@@ -202,27 +203,28 @@ class Chatbot:
 
     def get_titles_between_quotes(self, text):
         """
-          Expects text to be preprocessed. We expect that there will be an even
-          number of quote characters ("), including zero quote characters.
-          Given preprocessed text, we will expect the following:
-              Starter mode:
-                  Text between quotes must be bounded by the quotes, i.e, we cannot
-                  have a string such as " movie 1 ", but instead we must have 
-                  "movie 1". This makes it easier to expect where the quotes are,
-                  so preprocess function must be developed.
-          :param text: preprocessed text
-          :returns: empty list if no movies found; list of strings of movies if movies found
+        Expects text to be preprocessed. We expect that there will be an even
+        number of quote characters ("), including zero quote characters.
+
+        Given preprocessed text, we will expect the following:
+            Starter mode:
+                Text between quotes must be bounded by the quotes, i.e, we cannot
+                have a string such as " movie 1 ", but instead we must have 
+                "movie 1". This makes it easier to expect where the quotes are,
+                so preprocess function must be developed.
+
+        :param text: preprocessed text
+        :returns: empty list if no movies found; list of strings of movies if movies found
         """
-          
         movie_titles = []
         start_index = text.find("\"")
         while (start_index != -1):
-          next_index = text.find("\"", start_index + 1)
-          if (next_index == -1): break
-          sub_str = text[start_index + 1:next_index]
-          sub_str = sub_str.strip()
-          movie_titles.append(sub_str)
-          start_index = text.find("\"", next_index + 1)
+            next_index = text.find("\"", start_index + 1)
+            if (next_index == -1): break
+            sub_str = text[start_index + 1:next_index]
+            sub_str = sub_str.strip()
+            movie_titles.append(sub_str)
+            start_index = text.find("\"", next_index + 1)
         return movie_titles 
 
     def extract_titles(self, preprocessed_input):
@@ -240,7 +242,6 @@ class Chatbot:
         :param preprocessed_input: a user-supplied line of text that has been pre-processed with preprocess()
         :returns: list of movie titles that are potentially in the text
         """
-
         movie_titles = self.get_titles_between_quotes(preprocessed_input)
         return movie_titles
 
@@ -249,7 +250,7 @@ class Chatbot:
         Given a title, checks if it contains a year (\d{4}). Returns index of the occurence.
         
         :param title: string, title of movie
-        :returns: (length - 1) if it doesn't have year, or index of the first parenthesis of the year in the string
+        :returns: (length) if it doesn't have year, or index of the first parenthesis of the year in the string
         """
         year_pattern = "\(\d{4}\)" # with this specific patter, descriptions within parenthesis will be ignored
         if not re.search(year_pattern, title):
@@ -261,7 +262,7 @@ class Chatbot:
         broke = ["", title]
         articles = ["The", "A", "An"]
         for art in articles:
-            if art in title:
+            if (art + " ") in title:
                 remaining = re.split(art, title)[1]
                 return [art, remaining.strip()]
         return broke
@@ -285,6 +286,10 @@ class Chatbot:
         yearless_title = yearless_title.strip()
         year = " " + year
         article, remaining = self.break_by_article(yearless_title) 
+        yearless_title, year = title[:year_index], title[year_index:] # year will be empty string if it doesn't contain year
+        yearless_title = yearless_title.strip()
+        year = " " + year
+        article, remaining = self.break_by_article(yearless_title) 
         if (article != ""):
             rearranged = remaining + ", " + article + year
         else: rearranged = remaining + year
@@ -300,7 +305,6 @@ class Chatbot:
                 if movie_title == rearranged: return [movie_index]
                 if (rearranged + " (") in movie_title:
                     matching_movie_indices.append(movie_index)
-        
         return matching_movie_indices
 
     
