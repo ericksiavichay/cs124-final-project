@@ -268,7 +268,6 @@ class Chatbot:
 
         :returns: a binarized version of the movie-rating matrix
         """
-<<<<<<< HEAD
 
         for i in range(len(ratings)):
           for j in range(len(ratings[0])):
@@ -280,19 +279,6 @@ class Chatbot:
             else:
               ratings[i][j] = -1
 
-=======
-
-        for i in range(len(ratings)):
-          for j in range(len(ratings[0])):
-            rating = ratings[i][j]
-            if rating == 0:
-              continue
-            if rating > threshold:
-              ratings[i][j] = 1
-            else:
-              ratings[i][j] = -1
-
->>>>>>> sanura
         return ratings
 
     def similarity(self, u, v):
