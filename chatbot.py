@@ -327,7 +327,10 @@ class Chatbot:
         :returns: a list of tuples, where the first item in the tuple is a movie title,
           and the second is the sentiment in the text toward that movie
         """
-        pass
+        movies_sentiment = list()
+        # break input into CLAUSES by punctation marks or but/however/and
+        print("inside extract sentiment for movies function")
+        return
 
     def find_movies_closest_to_title(self, title, max_distance=3):
         """Creative Feature: Given a potentially misspelled movie title,
