@@ -5,11 +5,8 @@
 import movielens
 import re
 import numpy as np
-<<<<<<< HEAD
 from pdb import set_trace
-=======
 import math
->>>>>>> 5c9a69a41566575132e3ecad1b4c365d0d8a630b
 
 from PorterStemmer import PorterStemmer
 
@@ -253,6 +250,8 @@ class Chatbot:
         :returns: list of movie titles that are potentially in the text
         """
         movie_titles = self.get_titles_between_quotes(preprocessed_input)
+        for movie in movie_titles:
+            print("movie {} has indicies {}".format(movie, self.find_movies_by_title(movie)))
         return movie_titles
 
     def get_year_index(self, title):
@@ -272,7 +271,7 @@ class Chatbot:
         broke = ["", title]
         articles = ["The", "A", "An"]
         for art in articles:
-            if art in title:
+            if (art + " ") in title:
                 remaining = re.split(art, title)[1]
                 return [art, remaining.strip()]
         return broke
@@ -304,6 +303,7 @@ class Chatbot:
             rearranged = remaining + ", " + article + year
         else: rearranged = remaining + year
         rearranged = rearranged.strip()
+        print("rearranged: ", rearranged)
 
         # given this rearranged format, search for this in the dataset
         # a title with year should return list of length one since 
