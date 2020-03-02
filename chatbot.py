@@ -3,9 +3,11 @@
 # Original Python code by Ignacio Cases (@cases)
 ######################################################################
 import movielens
+import re
 
 import numpy as np
 
+from PorterStemmer import PorterStemmer
 
 # noinspection PyMethodMayBeStatic
 class Chatbot:
@@ -17,11 +19,20 @@ class Chatbot:
 
         self.creative = creative
 
+        self.punctationMarks = list(".:;!?")
+
         # This matrix has the following shape: num_movies x num_users
         # The values stored in each row i and column j is the rating for
         # movie i by user j
         self.titles, ratings = movielens.ratings()
-        self.sentiment = movielens.sentiment()
+        self.porterStemmer = PorterStemmer()
+
+        # stem all the words in the lexicon
+        self.sentiment = {}
+        for word in movielens.sentiment().items():
+          stemmed = self.porterStemmer.stem(word[0])
+          self.sentiment[stemmed] = word[1]
+        
 
         #############################################################################
         # TODO: Binarize the movie ratings matrix.                                  #
@@ -94,6 +105,10 @@ class Chatbot:
         if self.creative:
             response = "I processed {} in creative mode!!".format(line)
         else:
+            # print("in the pre process function")
+            # calling sentiment extractor
+            # first extract the movie
+            self.extract_sentiment(line)
             response = "I processed {} in starter mode!!".format(line)
 
         #############################################################################
@@ -167,6 +182,70 @@ class Chatbot:
         """
         return []
 
+    
+    def processInputForSentimentExtraction(self, preprocessed_input):
+        # add a space before after each punctation mark
+        ch = 0
+        while(True):
+          if (ch >= len(preprocessed_input)): break
+          # if this char is a punctation mark
+          if preprocessed_input[ch] in self.punctationMarks:
+            preprocessed_input = preprocessed_input[:ch] + " " + preprocessed_input[ch:]
+            ch += 1
+          ch += 1
+
+        #print("...After adding space before all punctation: " + preprocessed_input)
+
+        # remove title
+        while (True):
+          startQuote = preprocessed_input.find('\"')
+          if (startQuote == -1): 
+            break
+          endQuote = preprocessed_input.find('\"', startQuote + 1)
+          if (endQuote == -1): 
+            print("ERROR")
+            break
+          beg = preprocessed_input[:startQuote]
+          end = preprocessed_input[endQuote + 1:]
+          preprocessed_input = beg + end
+        # print("...After removing title: " + preprocessed_input)
+
+        # stem the words
+        stemmedInput = preprocessed_input.split(" ")
+        for i, word in enumerate(stemmedInput):
+          # eleminate empty strings in list
+          if (word == ""): 
+            stemmedInput.pop(i)
+            continue
+          # otherwise stem the word
+          stemmedInput[i] = self.porterStemmer.stem(word)
+        #print("...After stemming: ", stemmedInput)
+        
+        # account for negatations
+        pattern = re.compile("(?:^(?:never|no|nothing|nowhere|noone|none|not|havent|hasnt|hadnt|cant|couldnt|shouldnt|wont|wouldnt|dont|doesnt|didnt|isnt|arent|aint)$)|n't")
+        for i, word in enumerate(stemmedInput):
+          # if word is a negation
+          # print("MATCHING PATTERN: ", pattern)
+          # print(word)
+          if pattern.search(word) != None:
+            # print("YIKES: Negation found")
+            # change every word until a punctation to NOT_
+            if (i == len(stemmedInput) - 1): break; # ensure this isn't the last word in the list
+            j = i + 1
+            while j < len(stemmedInput):
+              toNegate = stemmedInput[j]
+              # stop at punctation
+              if (re.search(r"^[.:;!?]$", toNegate)): break
+              # otherwise manipulate
+              toNegate += "_NEG"
+              stemmedInput[j] = toNegate
+              j += 1
+
+        #print("...After negations: ", stemmedInput)
+
+        return stemmedInput
+    
+
     def extract_sentiment(self, preprocessed_input):
         """Extract a sentiment rating from a line of pre-processed text.
 
@@ -184,7 +263,53 @@ class Chatbot:
         :param preprocessed_input: a user-supplied line of text that has been pre-processed with preprocess()
         :returns: a numerical value for the sentiment of the text
         """
-        return 0
+        # to test: I never liked "Titanic (1997)".
+
+        # remove word between quotation marks
+        processed_input = self.processInputForSentimentExtraction(preprocessed_input)
+        #print("Finished processing input. Results: ")
+        #print(processed_input)
+
+        # extract sentiment
+        lambda_val = 1
+        # extract sentiment 
+        pos_count = 1
+        neg_count = 1
+        for word in processed_input:
+          # check if word is negated
+          word_is_neg = False
+          if (word[-4:] == "_NEG"):
+            word = word[:-4]
+            word_is_neg = True
+
+          # ensure the word is in our lexicon
+          if (word in self.sentiment):
+            if (word == "terrible"):
+              print("------Found the world terrible")
+              
+            val = self.sentiment[word]
+            # accomodate negative words
+            if (val == "pos"):
+              if (word_is_neg): 
+                neg_count += 1
+              else: 
+                pos_count += 1
+            else:
+              if (word_is_neg):
+                pos_count += 1
+              else: 
+                neg_count += 1
+
+        if ((pos_count / neg_count) > lambda_val):
+          sentiment = 1
+        elif ((neg_count / pos_count) > lambda_val):
+          sentiment = -1
+        else:
+          sentiment = 0
+
+
+        print("calculated sentiment: ", sentiment)
+        return sentiment
 
     def extract_sentiment_for_movies(self, preprocessed_input):
         """Creative Feature: Extracts the sentiments from a line of pre-processed text
