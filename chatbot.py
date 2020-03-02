@@ -265,8 +265,8 @@ class Chatbot:
         """
         for movie in movie_titles:
             print("movie {} has indices {}".format(movie, self.find_movies_by_title(movie)))
-        """
         return movie_titles
+        """
 
     def get_year_index(self, title):
         """
@@ -309,24 +309,25 @@ class Chatbot:
         yearless_title = yearless_title.strip()
         year = " " + year
         article, remaining = self.break_by_article(yearless_title) 
-        yearless_title, year = title[:year_index], title[year_index:] # year will be empty string if it doesn't contain year
-        yearless_title = yearless_title.strip()
-        year = " " + year
-        article, remaining = self.break_by_article(yearless_title) 
+        
         if (article != ""):
             rearranged = remaining + ", " + article + year
-        else: rearranged = remaining + year
+            yearless_rearranged = remaining + ", " + article
+        else: 
+            rearranged = remaining + year
+            yearless_rearranged = remaining
         rearranged = rearranged.strip()
 
         # given this rearranged format, search for this in the dataset
         # a title with year should return list of length one since 
         # it would not be a substring of anything else but the exact match
+        similar_title_pattern = "(:?.+)?" + yearless_rearranged + r"\b(:?.+)?"# matches rearranged to an exact substring in movie_title
         with open(self.movie_db) as movie_file:
             lines = movie_file.readlines()
             for line in lines:
                 movie_index, movie_title, _ = line.split("%") # splitting should return 3 strings
                 if movie_title == rearranged: return [int(movie_index)]
-                if (rearranged + " (") in movie_title:
+                if re.search(similar_title_pattern, movie_title):
                     matching_movie_indices.append(int(movie_index))
         return matching_movie_indices
 
