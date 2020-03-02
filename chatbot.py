@@ -262,8 +262,10 @@ class Chatbot:
         """
         movie_titles = self.get_titles_between_quotes(preprocessed_input)
         # TODO: debugging, remove after confident it's working
+        """
         for movie in movie_titles:
             print("movie {} has indices {}".format(movie, self.find_movies_by_title(movie)))
+        """
         return movie_titles
 
     def get_year_index(self, title):
