@@ -33,7 +33,7 @@ class Chatbot:
         for word in movielens.sentiment().items():
           stemmed = self.porterStemmer.stem(word[0])
           self.sentiment[stemmed] = word[1]
-        
+        self.negationPattern = re.compile("(?:^(?:never|no|nothing|nowhere|noone|none|not|havent|hasnt|hadnt|cant|couldnt|shouldnt|wont|wouldnt|dont|doesnt|didnt|isnt|arent|aint)$)|n't")
 
         # Binarize the movie ratings before storing the binarized matrix.
         ratings = self.binarize(ratings)
@@ -113,8 +113,12 @@ class Chatbot:
             # print("in the pre process function")
             # calling sentiment extractor
             # first extract the movie
-            self.extract_sentiment(line)
+            # self.extract_sentiment(line)
+            prepocessed_line = self.preprocess(line)
+            # if there are multiple movies in the title, use this one
+            self.extract_sentiment(prepocessed_line)
             response = "I processed {} in starter mode!!".format(line)
+            return response
 
         prepocessed_line = self.preprocess(line)
         if self.requested_rec:
@@ -349,12 +353,12 @@ class Chatbot:
         #print("...After stemming: ", stemmedInput)
         
         # account for negatations
-        pattern = re.compile("(?:^(?:never|no|nothing|nowhere|noone|none|not|havent|hasnt|hadnt|cant|couldnt|shouldnt|wont|wouldnt|dont|doesnt|didnt|isnt|arent|aint)$)|n't")
         for i, word in enumerate(stemmedInput):
           # if word is a negation
           # print("MATCHING PATTERN: ", pattern)
           # print(word)
-          if pattern.search(word) != None:
+
+          if self.negationPattern.search(word) != None:
             # print("YIKES: Negation found")
             # change every word until a punctation to NOT_
             if (i == len(stemmedInput) - 1): break; # ensure this isn't the last word in the list
@@ -363,15 +367,57 @@ class Chatbot:
               toNegate = stemmedInput[j]
               # stop at punctation
               if (re.search(r"^[.:;!?]$", toNegate)): break
-              # otherwise manipulate
-              toNegate += "_NEG"
-              stemmedInput[j] = toNegate
+
+              # if this word is a negation word already, don't change it, so we can catch it and re-negate later
+              if self.negationPattern.search(toNegate) == None:
+                # otherwise manipulate, depending on weather it has the _NEG suffix already
+                if (toNegate[-4:] == "_NEG"):
+                  toNegate = toNegate[:-4]
+                  print("the new toNegate: " + toNegate)
+                else:
+                  toNegate += "_NEG"
+                stemmedInput[j] = toNegate
               j += 1
 
         #print("...After negations: ", stemmedInput)
 
         return stemmedInput
     
+    def calculate_sentiment(self, processed_input):
+      lambda_val = 1
+      # extract sentiment 
+      pos_count = 1
+      neg_count = 1
+      for word in processed_input:
+        # check if word is negated
+        word_is_neg = False
+        if (word[-4:] == "_NEG"):
+          word = word[:-4]
+          word_is_neg = True
+
+        # ensure the word is in our lexicon
+        if (word in self.sentiment):
+            
+          val = self.sentiment[word]
+          # accomodate negative words
+          if (val == "pos"):
+            if (word_is_neg): 
+              neg_count += 1
+            else: 
+              pos_count += 1
+          else:
+            if (word_is_neg):
+              pos_count += 1
+            else: 
+              neg_count += 1
+
+      if ((pos_count / neg_count) > lambda_val):
+        sentiment = 1
+      elif ((neg_count / pos_count) > lambda_val):
+        sentiment = -1
+      else:
+        sentiment = 0
+      return sentiment
 
     def extract_sentiment(self, preprocessed_input):
         """Extract a sentiment rating from a line of pre-processed text.
@@ -397,45 +443,15 @@ class Chatbot:
         # processed_input is a list of all the tokens in this sentence, not including the title
 
         # extract sentiment
-        lambda_val = 1
-        # extract sentiment 
-        pos_count = 1
-        neg_count = 1
-        for word in processed_input:
-          # check if word is negated
-          word_is_neg = False
-          if (word[-4:] == "_NEG"):
-            word = word[:-4]
-            word_is_neg = True
-
-          # ensure the word is in our lexicon
-          if (word in self.sentiment):
-            if (word == "terrible"):
-              print("------Found the world terrible")
-              
-            val = self.sentiment[word]
-            # accomodate negative words
-            if (val == "pos"):
-              if (word_is_neg): 
-                neg_count += 1
-              else: 
-                pos_count += 1
-            else:
-              if (word_is_neg):
-                pos_count += 1
-              else: 
-                neg_count += 1
-
-        if ((pos_count / neg_count) > lambda_val):
-          sentiment = 1
-        elif ((neg_count / pos_count) > lambda_val):
-          sentiment = -1
-        else:
-          sentiment = 0
-
+        sentiment = self.calculate_sentiment(processed_input)
 
         print("calculated sentiment: ", sentiment)
         return sentiment
+
+
+    def splitInput(self, preprocessed_input):
+      clauses = re.split(r'(?i)(?: and )|(?: or )|(?: but )|(?:\.)|(?: however[ ,])|(?: nevertheless[ ,])', preprocessed_input)
+      return clauses
 
     def extract_sentiment_for_movies(self, preprocessed_input):
         """Creative Feature: Extracts the sentiments from a line of pre-processed text
@@ -455,9 +471,59 @@ class Chatbot:
           and the second is the sentiment in the text toward that movie
         """
         movies_sentiment = list()
+        movie_titles = self.get_titles_between_quotes(preprocessed_input) # index into movies in request
         # break input into CLAUSES by punctation marks or but/however/and
-        print("inside extract sentiment for movies function")
-        return
+        print("ENTERED: extract_sentiment_for_movies")
+        print("Movies in request: ", movie_titles)
+        
+        # break sentence up by clauses
+        tempClauses = self.splitInput(preprocessed_input)
+
+        # clear clause of empty strings
+        clauses = list()
+        for item in tempClauses:
+          if item != "":
+            clauses.append(item)
+        print("Clauses: ", clauses)
+
+        # process each clause
+        for i, clause in enumerate(clauses):
+          if (clause == ""): continue  # edge case for when clause found is empty
+
+          processed_clause = self.processInputForSentimentExtraction(clause)
+          print("processed_clause: ", processed_clause)
+          # if there was previously just a title in this clause
+          if (len(processed_clause) <= 1):
+            # check if word before movie was a negation
+            if (len(processed_clause) == 1):
+              word = processed_clause[0]
+              if self.negationPattern.search(word) != None:
+                prevSentiment = movies_sentiment[i - 1][1]
+                movies_sentiment.append((movie_titles[i], prevSentiment * -1))  # multiple by negative one to flip sentiment
+                continue
+            else:
+              # set sentiment to previous sentiment for now.
+              prevSentiment = movies_sentiment[i - 1][1]
+              movies_sentiment.append((movie_titles[i], prevSentiment))
+          else:
+            sentiment = self.calculate_sentiment(processed_clause)
+            movies_sentiment.append((movie_titles[i], sentiment))
+
+        # logic: if a movie is mentioned without any words, the seniment is probably the same as the previous movie mentioned
+        # algoithm: check clauses in reverse and apply sentiment to clauses with just a single movie in them
+        # for i, sentiment in movies_sentiment.reverse():
+        #   # don't match first movie
+        #   if (sentiment[1] == None):
+        #     # check whats behind it first
+        #     if (movies_sentiment[i - 1][1] != None):
+        #       sentiment[1] = movies_sentiment[i + 1].
+        #     else:
+        #       sentiment[1] = movies_sentiment[i - 1]
+
+        # edge case, if first movie has no sentiment, set it to second mentioned movie sentiment
+        # if (movies_sentiment[0][1] == None):
+        print("Finished Successfully: ", movies_sentiment)
+        return movies_sentiment
 
     def find_movies_closest_to_title(self, title, max_distance=3):
         """Creative Feature: Given a potentially misspelled movie title,
