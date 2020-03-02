@@ -1,4 +1,5 @@
 I liked "Titanic"
 I didn't like "Ex Machina"
+I liked "Titanic" and "        movie (1994)" and also movie3
 Who are you?
 :quit

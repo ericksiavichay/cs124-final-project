@@ -3,8 +3,9 @@
 # Original Python code by Ignacio Cases (@cases)
 ######################################################################
 import movielens
-
+import re
 import numpy as np
+from pdb import set_trace
 
 
 # noinspection PyMethodMayBeStatic
@@ -16,6 +17,8 @@ class Chatbot:
         self.name = 'R.O.B.' # responsive, omniscient bot
 
         self.creative = creative
+
+        self.movie_db = "./data/movies.txt"
 
         # This matrix has the following shape: num_movies x num_users
         # The values stored in each row i and column j is the rating for
@@ -92,9 +95,9 @@ class Chatbot:
         # it is highly recommended.                                                 #
         #############################################################################
         if self.creative:
-            response = "I processed {} in creative mode!!".format(line)
+            response = "I processed {} in creative mode!!".format(self.extract_titles(line))
         else:
-            response = "I processed {} in starter mode!!".format(line)
+            response = "I processed {} in starter mode!!".format(self.extract_titles(line))
 
         #############################################################################
         #                             END OF YOUR CODE                              #
@@ -128,6 +131,32 @@ class Chatbot:
 
         return text
 
+    def get_titles_between_quotes(self, text):
+        """
+        Expects text to be preprocessed. We expect that there will be an even
+        number of quote characters ("), including zero quote characters.
+
+        Given preprocessed text, we will expect the following:
+            Starter mode:
+                Text between quotes must be bounded by the quotes, i.e, we cannot
+                have a string such as " movie 1 ", but instead we must have 
+                "movie 1". This makes it easier to expect where the quotes are,
+                so preprocess function must be developed.
+
+        :param text: preprocessed text
+        :returns: empty list if no movies found; list of strings of movies if movies found
+        """
+        movie_titles = []
+        start_index = text.find("\"")
+        while (start_index != -1):
+            next_index = text.find("\"", start_index + 1)
+            if (next_index == -1): break
+            sub_str = text[start_index + 1:next_index]
+            sub_str = sub_str.strip()
+            movie_titles.append(sub_str)
+            start_index = text.find("\"", next_index + 1)
+        return movie_titles 
+
     def extract_titles(self, preprocessed_input):
         """Extract potential movie titles from a line of pre-processed text.
 
@@ -147,7 +176,34 @@ class Chatbot:
         :param preprocessed_input: a user-supplied line of text that has been pre-processed with preprocess()
         :returns: list of movie titles that are potentially in the text
         """
-        return []
+
+        movie_titles = self.get_titles_between_quotes(preprocessed_input)
+        for movie in movie_titles:
+            print("movie \"{}\" has indicies: {}".format(movie, self.find_movies_by_title(movie)))
+
+        return movie_titles
+
+    def get_year_index(self, title):
+        """
+        Given a title, checks if it contains a year (\d{4}). Returns index of the occurence.
+        
+        :param title: string, title of movie
+        :returns: (length - 1) if it doesn't have year, or index of the first parenthesis of the year in the string
+        """
+        year_pattern = "\(\d{4}\)" # with this specific patter, descriptions within parenthesis will be ignored
+        if not re.search(year_pattern, title):
+            return len(title)
+        for match in re.finditer(year_pattern, title):
+            return match.start(0)
+
+    def break_by_article(self, title):
+        broke = ["", title]
+        articles = ["The", "A", "An"]
+        for art in articles:
+            if art in title:
+                remaining = re.split(art, title)[1]
+                return [art, remaining.strip()]
+        return broke
 
     def find_movies_by_title(self, title):
         """ Given a movie title, return a list of indices of matching movies.
@@ -165,7 +221,33 @@ class Chatbot:
         :param title: a string containing a movie title
         :returns: a list of indices of matching movies
         """
-        return []
+        matching_movie_indices = []
+        year_index = self.get_year_index(title)
+        print("year_index: {}\nstring len: {}".format(year_index, len(title)))
+        yearless_title, year = title[:year_index], title[year_index:] # year will be empty string if it doesn't contain year
+        yearless_title = yearless_title.strip()
+        year = " " + year
+        print("yearless title: {}\nyear: {}".format(yearless_title, year))
+        article, remaining = self.break_by_article(yearless_title) 
+        print("article: {}\nremaining: {}".format(article, remaining))
+        if (article != ""):
+            rearranged = remaining + ", " + article + year
+        else: rearranged = remaining + year
+        rearranged = rearranged.strip()
+        print("rearranged: ", "\"" + rearranged + "\"")
+
+        # given this rearranged format, search for this in the dataset
+        # a title with year should return list of length one since 
+        # it would not be a substring of anything else but the exact match
+        with open(self.movie_db) as movie_file:
+            lines = movie_file.readlines()
+            for line in lines:
+                movie_index, movie_title, _ = line.split("%") # splitting should return 3 strings
+                if movie_title == rearranged: return [movie_index]
+                if (rearranged + " (") in movie_title:
+                    matching_movie_indices.append(movie_index)
+        
+        return matching_movie_indices
 
     def extract_sentiment(self, preprocessed_input):
         """Extract a sentiment rating from a line of pre-processed text.
