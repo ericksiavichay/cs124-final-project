@@ -5,6 +5,7 @@
 import movielens
 
 import numpy as np
+import math
 
 
 # noinspection PyMethodMayBeStatic
@@ -27,6 +28,7 @@ class Chatbot:
         ratings = self.binarize(ratings)
 
         self.ratings = ratings
+
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -292,7 +294,24 @@ class Chatbot:
         #############################################################################
         # TODO: Compute cosine similarity between the two vectors.
         #############################################################################
-        similarity = 0
+
+        numerator = 0
+        denom_u = 0
+        denom_v = 0
+        for i in range(len(u)):
+          rank_u = u[i]
+          rank_v = v[i]
+          if rank_u != 0 and rank_v != 0:
+            numerator += rank_u * rank_v
+            denom_u += pow(rank_u, 2)
+            denom_v += pow(rank_v, 2)
+
+        denominator = math.sqrt(denom_u) * math.sqrt(denom_v)
+        if denominator == 0:
+          similarity = 0
+        else:
+          similarity = numerator / denominator
+
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -330,6 +349,45 @@ class Chatbot:
 
         # Populate this list with k movie indices to recommend to the user.
         recommendations = []
+        already_rated = []
+
+        # Find all movies already rated by user
+        for i in range(len(user_ratings)):
+          if user_ratings[i] != 0:
+            already_rated.append(i)
+        
+        # Get estimated ratings for movies not rated by user
+        all_rated = []
+        for i in range(len(user_ratings)):
+          if user_ratings[i] != 0:
+            # If already rated, append -2 to ensure it will not be considered when giving recommendation
+            all_rated.append(-2)
+          else:
+            # Compute nominator and denominator in weighted average formula
+            nominator = 0
+            denominator = 0
+            for rated_movie_index in already_rated:
+              # Compute cosine similarity between movie i and movie rated by user with index rated_movie_index
+              rated_movie_vector = ratings_matrix[rated_movie_index].copy()
+              movie_to_rate_vector = ratings_matrix[i].copy()
+              sim = self.similarity(rated_movie_vector, movie_to_rate_vector)
+              nominator += sim * user_ratings[rated_movie_index]
+              denominator += sim
+
+            if denominator == 0:
+              ranking = 0
+            else:
+              ranking = nominator / denominator
+            all_rated.append(ranking)
+            
+        # Get top k recommendations
+        sorted_ranks = []
+        for rank in sorted(all_rated):
+          if rank != -2:
+            sorted_ranks.append(rank)
+        for i in range(min(k, len(sorted_ranks))):
+          movie_index = all_rated.index(sorted_ranks[i])
+          recommendations.append(movie_index)
 
         #############################################################################
         #                             END OF YOUR CODE                              #
