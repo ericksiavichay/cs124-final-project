@@ -250,8 +250,6 @@ class Chatbot:
         :returns: list of movie titles that are potentially in the text
         """
         movie_titles = self.get_titles_between_quotes(preprocessed_input)
-        for movie in movie_titles:
-            print("movie {} has indicies {}".format(movie, self.find_movies_by_title(movie)))
         return movie_titles
 
     def get_year_index(self, title):
@@ -303,7 +301,6 @@ class Chatbot:
             rearranged = remaining + ", " + article + year
         else: rearranged = remaining + year
         rearranged = rearranged.strip()
-        print("rearranged: ", rearranged)
 
         # given this rearranged format, search for this in the dataset
         # a title with year should return list of length one since 
