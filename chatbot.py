@@ -24,7 +24,7 @@ class Chatbot:
         # This matrix has the following shape: num_movies x num_users
         # The values stored in each row i and column j is the rating for
         # movie i by user j
-        self.titles, ratings = movielens.ratings()
+        self.titles, ratings = movielens.ratings()  
         self.porterStemmer = PorterStemmer()
 
         # stem all the words in the lexicon
@@ -267,8 +267,7 @@ class Chatbot:
 
         # remove word between quotation marks
         processed_input = self.processInputForSentimentExtraction(preprocessed_input)
-        #print("Finished processing input. Results: ")
-        #print(processed_input)
+        # processed_input is a list of all the tokens in this sentence, not including the title
 
         # extract sentiment
         lambda_val = 1
