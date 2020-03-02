@@ -100,8 +100,6 @@ class Chatbot:
         #############################################################################
         if self.creative:
             response = "I processed {} in creative mode!!".format(line)
-        else:
-            response = "I processed {} in starter mode!!".format(line)
 
         prepocessed_line = self.preprocess(line)
         if self.requested_rec:
