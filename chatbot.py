@@ -48,7 +48,7 @@ class Chatbot:
         self.ratings = ratings
 
         self.num_movies_rated = 0
-        self.given_ratings = []
+        self.given_ratings = np.zeros(9125, dtype=int)
 
 
         self.recommendations = []
@@ -156,6 +156,9 @@ class Chatbot:
                     response = """I've actually never heard of "{}". 
                 Why don't you tell me about another movie.""".format(movie)
                 elif len(matching_movies) > 1:
+                    # TODO: disambiguation part 1
+                    disam = self.disambiguate(line, matching_movies)
+                    print("disam: ", disam)
                     response = """I found more than one movie called "{}". Can you clarify please?""".format(
                         movie)
                 else:
@@ -333,11 +336,22 @@ class Chatbot:
                 movie_index, movie_title, _ = line.split("%")  # splitting should return 3 strings
                 if movie_title == rearranged:
                     return [int(movie_index)]
+                if self.creative:    
+                    if re.search(similar_title_pattern, movie_title):
+                        matching_movie_indices.append(int(movie_index))
+                else:
+                    if (rearranged + " (") in movie_title):
+                        matching_movie_indices.append(int(movie_index)) 
+                """
                 if not self.creative:
+
                     if (rearranged + " (") in movie_title:
                         matching_movie_indices.append(int(movie_index))
+
                 elif re.search(similar_title_pattern, movie_title):
+                    print("movie title", movie_title)
                     matching_movie_indices.append(int(movie_index))
+                """
         return matching_movie_indices
 
     def removeTitles(self, preprocessed_input):
@@ -635,6 +649,16 @@ class Chatbot:
         :param candidates: a list of movie indices
         :returns: a list of indices corresponding to the movies identified by the clarification
         """
+        smaller_list = []
+        with open(self.movie_db) as movie_file:
+            lines = movie_file.readlines()
+            for index in candidates:
+                this_movie = lines[index]
+                if clarification in this_movie:
+                    smaller_list.append(index)
+        return smaller_list
+
+
         
 
     #############################################################################
