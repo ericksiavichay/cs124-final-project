@@ -538,7 +538,7 @@ class Chatbot:
             sentiment = self.calculate_sentiment(processed_clause)
             movies_sentiment.append((movie_titles[i], sentiment))
 
-        print("Found: ", movies_sentiment)
+        #print("Found: ", movies_sentiment)
         return movies_sentiment
 
     def calculate_minimum_edit_distance(self, s, t, len_s, len_t):
